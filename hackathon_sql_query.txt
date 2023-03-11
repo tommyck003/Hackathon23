@@ -1,0 +1,40 @@
+select * from (
+SELECT 
+  organization_code_iata, 
+  organization_code_icao, 
+  DATE_TRUNC(period_end_date, MONTH) AS month,
+  SUM(
+    passenger_load_factor_pct * 
+    CASE 
+      WHEN period_start_date > DATE_TRUNC(period_end_date, MONTH) + INTERVAL 1 MONTH THEN 0 
+      WHEN period_end_date < DATE_TRUNC(period_end_date, MONTH) THEN 0 
+      ELSE 
+        GREATEST(0, 
+          LEAST(
+            1, 
+            DATE_DIFF(period_end_date, DATE_TRUNC(period_end_date, MONTH), DAY) / 
+            DATE_DIFF(period_end_date, period_start_date, DAY)
+          )
+        )
+    END
+  ) / SUM(
+    CASE 
+      WHEN period_start_date > DATE_TRUNC(period_end_date, MONTH) + INTERVAL 1 MONTH THEN 0 
+      WHEN period_end_date < DATE_TRUNC(period_end_date, MONTH) THEN 0 
+      ELSE 
+        GREATEST(0, 
+          LEAST(
+            1, 
+            DATE_DIFF(period_end_date, DATE_TRUNC(period_end_date, MONTH), DAY) / 
+            DATE_DIFF(period_end_date, period_start_date, DAY)
+          )
+        )
+    END
+  ) AS avg_load_factor
+FROM `my-pet-project-318717.Hackathon.load_factor_table`
+GROUP BY 
+  organization_code_iata, 
+  organization_code_icao, 
+  DATE_TRUNC(period_end_date, MONTH))
+  order by organization_code_iata,month
+  
